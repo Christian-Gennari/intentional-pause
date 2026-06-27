@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8eee8">
+  <meta name="description" content="Two quiet breaths, then one clear intention.">
+  <title>Pause</title>
+
+  <style>
+    :root {
+      --paper: #edf1eb;
+      --paper-deep: #dce5dc;
+      --ink: #243129;
+      --muted: #66736b;
+      --soft: rgba(255, 255, 255, .48);
+      --line: rgba(36, 49, 41, .11);
+      --orb-light: #cfddd1;
+      --orb-mid: #8caa94;
+      --orb-deep: #587363;
+      --focus: rgba(71, 107, 83, .18);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --paper: #172019;
+        --paper-deep: #202c23;
+        --ink: #edf3ee;
+        --muted: #a5b3a9;
+        --soft: rgba(255, 255, 255, .045);
+        --line: rgba(237, 243, 238, .10);
+        --orb-light: #a7bdaa;
+        --orb-mid: #718c78;
+        --orb-deep: #405749;
+        --focus: rgba(166, 196, 174, .14);
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      min-height: 100svh;
+      overflow: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255,255,255,.68), transparent 34rem),
+        radial-gradient(circle at 83% 86%, rgba(97,127,104,.13), transparent 32rem),
+        linear-gradient(145deg, var(--paper), var(--paper-deep));
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+        "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .035;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+    }
+
+    main {
+      position: relative;
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .screen {
+      position: absolute;
+      width: min(680px, calc(100vw - 40px));
+      text-align: center;
+      transition:
+        opacity 900ms cubic-bezier(.22,.8,.2,1),
+        transform 900ms cubic-bezier(.22,.8,.2,1),
+        filter 900ms ease;
+    }
+
+    .screen[aria-hidden="true"] {
+      opacity: 0;
+      transform: translateY(12px) scale(.985);
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .screen[aria-hidden="false"] {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+
+    .breath-stage {
+      display: grid;
+      justify-items: center;
+      gap: 42px;
+    }
+
+    .orb-space {
+      width: min(62vw, 340px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .orb {
+      width: 42%;
+      aspect-ratio: 1;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 34% 28%, rgba(255,255,255,.82), transparent 27%),
+        radial-gradient(circle at 66% 74%, rgba(54,78,62,.16), transparent 44%),
+        linear-gradient(145deg, var(--orb-light), var(--orb-mid) 56%, var(--orb-deep));
+      box-shadow:
+        0 28px 70px rgba(55, 81, 63, .19),
+        inset 0 1px 1px rgba(255,255,255,.5);
+      transform: scale(.72);
+      will-change: transform, opacity, box-shadow;
+    }
+
+    .orb.inhale {
+      animation: inhale var(--inhale-duration, 4s) cubic-bezier(.42,0,.2,1) forwards;
+    }
+
+    .orb.exhale {
+      animation: exhale var(--exhale-duration, 6s) cubic-bezier(.4,0,.2,1) forwards;
+    }
+
+    @keyframes inhale {
+      from {
+        transform: scale(.72);
+        opacity: .78;
+        box-shadow: 0 20px 55px rgba(55,81,63,.14);
+      }
+      to {
+        transform: scale(1.55);
+        opacity: 1;
+        box-shadow: 0 38px 105px rgba(55,81,63,.26);
+      }
+    }
+
+    @keyframes exhale {
+      from {
+        transform: scale(1.55);
+        opacity: 1;
+        box-shadow: 0 38px 105px rgba(55,81,63,.26);
+      }
+      to {
+        transform: scale(.72);
+        opacity: .78;
+        box-shadow: 0 20px 55px rgba(55,81,63,.14);
+      }
+    }
+
+    .instruction {
+      min-height: 1.5em;
+      margin: 0;
+      color: var(--muted);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.35rem, 3vw, 1.75rem);
+      font-weight: 400;
+      letter-spacing: -.015em;
+      transition: opacity 400ms ease;
+    }
+
+    .progress {
+      display: flex;
+      gap: 9px;
+      justify-content: center;
+      height: 10px;
+    }
+
+    .progress span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      opacity: .20;
+      transition: opacity 600ms ease, transform 600ms ease;
+    }
+
+    .progress span.active {
+      opacity: .72;
+      transform: scale(1.25);
+    }
+
+    .reflection {
+      display: grid;
+      justify-items: center;
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 650px;
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.7rem, 8vw, 5.7rem);
+      font-weight: 400;
+      line-height: .99;
+      letter-spacing: -.055em;
+    }
+
+    .answer-wrap {
+      width: min(560px, 100%);
+      margin-top: 44px;
+    }
+
+    input {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      padding: 13px 4px 15px;
+      outline: 0;
+      color: var(--ink);
+      background: transparent;
+      font: inherit;
+      font-size: clamp(1.05rem, 3vw, 1.28rem);
+      text-align: center;
+      caret-color: var(--orb-deep);
+      transition: border-color 220ms ease, box-shadow 220ms ease;
+    }
+
+    input::placeholder { color: var(--muted); opacity: .58; }
+
+    input:focus {
+      border-color: var(--orb-deep);
+      box-shadow: 0 7px 0 -6px var(--focus);
+    }
+
+    .hint {
+      margin: 14px 0 0;
+      min-height: 1.3em;
+      color: var(--muted);
+      font-size: .78rem;
+      letter-spacing: .02em;
+      opacity: .78;
+    }
+
+    .resolution {
+      display: grid;
+      justify-items: center;
+      gap: 24px;
+    }
+
+    .resolution p {
+      margin: 0;
+      color: var(--muted);
+      font-size: .77rem;
+      font-weight: 700;
+      letter-spacing: .17em;
+      text-transform: uppercase;
+    }
+
+    .intention {
+      max-width: 680px;
+      margin: 0;
+      overflow-wrap: anywhere;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.6rem, 8vw, 5.5rem);
+      font-weight: 400;
+      line-height: 1.02;
+      letter-spacing: -.05em;
+    }
+
+    .closing {
+      margin-top: 10px !important;
+      font-family: inherit !important;
+      font-size: .92rem !important;
+      font-weight: 400 !important;
+      letter-spacing: 0 !important;
+      text-transform: none !important;
+    }
+
+
+
+    .sound-control {
+      position: fixed;
+      left: 16px;
+      bottom: 14px;
+      z-index: 5;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 11px;
+      color: var(--muted);
+      background: var(--soft);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      font: inherit;
+      font-size: .72rem;
+      opacity: .22;
+      cursor: pointer;
+      transition: opacity 220ms ease, transform 220ms ease, background 220ms ease;
+    }
+
+    .sound-control:hover,
+    .sound-control:focus-visible {
+      opacity: .82;
+      transform: translateY(-1px);
+    }
+
+    .sound-control.needs-action {
+      opacity: .86;
+      animation: sound-invitation 2.4s ease-in-out infinite;
+    }
+
+    .sound-control:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 3px;
+    }
+
+    .sound-icon {
+      width: 1em;
+      text-align: center;
+      font-size: .9rem;
+      line-height: 1;
+    }
+
+    @keyframes sound-invitation {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(88,115,99,0); }
+      50% { box-shadow: 0 0 0 7px rgba(88,115,99,.08); }
+    }
+
+    .restart {
+      position: fixed;
+      right: 18px;
+      bottom: 16px;
+      border: 0;
+      padding: 8px;
+      color: var(--muted);
+      background: transparent;
+      font: inherit;
+      font-size: .72rem;
+      opacity: .26;
+      cursor: pointer;
+      transition: opacity 180ms ease;
+    }
+
+    .restart:hover,
+    .restart:focus-visible { opacity: .8; }
+
+    .restart:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+      border-radius: 5px;
+    }
+
+    @media (max-width: 520px) {
+      .breath-stage { gap: 28px; }
+      .orb-space { width: min(78vw, 320px); }
+      .answer-wrap { margin-top: 35px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .screen {
+        transition-duration: 120ms;
+        filter: none !important;
+      }
+
+      .orb.inhale { animation: gentle-inhale 4s linear forwards; }
+      .orb.exhale { animation: gentle-exhale 6s linear forwards; }
+
+      @keyframes gentle-inhale {
+        from { opacity: .65; }
+        to { opacity: 1; }
+      }
+
+      @keyframes gentle-exhale {
+        from { opacity: 1; }
+        to { opacity: .65; }
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <main>
+    <section class="screen breath-screen" id="breathScreen" aria-hidden="false">
+      <div class="breath-stage">
+        <div class="orb-space">
+          <div class="orb" id="orb" aria-hidden="true"></div>
+        </div>
+
+        <div>
+          <p class="instruction" id="instruction" aria-live="polite">&nbsp;</p>
+          <div class="progress" aria-label="Two breaths">
+            <span id="dot1"></span>
+            <span id="dot2"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen reflection-screen" id="reflectionScreen" aria-hidden="true">
+      <div class="reflection">
+        <p class="eyebrow">Now that there is a little space</p>
+        <h1>What is important right now?</h1>
+
+        <form class="answer-wrap" id="intentionForm">
+          <label for="intention" style="position:absolute;left:-9999px">
+            What is important right now?
+          </label>
+          <input
+            id="intention"
+            name="intention"
+            type="text"
+            autocomplete="off"
+            maxlength="160"
+            placeholder="Name one thing"
+          >
+          <p class="hint">Press Enter</p>
+        </form>
+      </div>
+    </section>
+
+    <section class="screen resolution-screen" id="resolutionScreen" aria-hidden="true">
+      <div class="resolution">
+        <p>This is enough for now</p>
+        <blockquote class="intention" id="intentionText"></blockquote>
+        <p class="closing">Close this tab and give it your attention.</p>
+      </div>
+    </section>
+  </main>
+
+  <button class="sound-control" id="soundControl" type="button" aria-pressed="false">
+    <span class="sound-icon" id="soundIcon" aria-hidden="true">♪</span>
+    <span id="soundLabel">tap for sound</span>
+  </button>
+
+  <button class="restart" id="restart" type="button" aria-label="Restart breathing exercise">
+    restart
+  </button>
+
+  <script>
+    /*
+      EASY SETTINGS
+      Change these values if you want a different rhythm or wording.
+    */
+    const SETTINGS = {
+      pauseBeforeStart: 1000,
+      inhaleDuration: 4000,
+      exhaleDuration: 6000,
+      breaths: 2,
+      ambientVolume: 0.82
+    };
+
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const orb = document.getElementById("orb");
+    const instruction = document.getElementById("instruction");
+    const breathScreen = document.getElementById("breathScreen");
+    const reflectionScreen = document.getElementById("reflectionScreen");
+    const resolutionScreen = document.getElementById("resolutionScreen");
+    const form = document.getElementById("intentionForm");
+    const input = document.getElementById("intention");
+    const intentionText = document.getElementById("intentionText");
+    const restart = document.getElementById("restart");
+    const soundControl = document.getElementById("soundControl");
+    const soundLabel = document.getElementById("soundLabel");
+    const soundIcon = document.getElementById("soundIcon");
+    const dots = [
+      document.getElementById("dot1"),
+      document.getElementById("dot2")
+    ];
+
+    let runId = 0;
+    let audioContext = null;
+    let masterGain = null;
+    let soundOn = false;
+    let sceneVolume = 1;
+
+    function readSoundPreference() {
+      try {
+        return localStorage.getItem("intentional-pause-sound");
+      } catch (_) {
+        return null;
+      }
+    }
+
+    function writeSoundPreference(value) {
+      try {
+        localStorage.setItem("intentional-pause-sound", value);
+      } catch (_) {
+        // The sound still works when storage is unavailable.
+      }
+    }
+
+    document.documentElement.style.setProperty("--inhale-duration", `${SETTINGS.inhaleDuration}ms`);
+    document.documentElement.style.setProperty("--exhale-duration", `${SETTINGS.exhaleDuration}ms`);
+
+    function makeBrownNoise(context) {
+      const seconds = 4;
+      const buffer = context.createBuffer(2, context.sampleRate * seconds, context.sampleRate);
+
+      for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+        const data = buffer.getChannelData(channel);
+        let last = 0;
+
+        for (let i = 0; i < data.length; i++) {
+          const white = Math.random() * 2 - 1;
+          last = (last + 0.018 * white) / 1.018;
+          data[i] = last * 3.2;
+        }
+      }
+
+      return buffer;
+    }
+
+    function buildSoundscape() {
+      if (audioContext) return;
+
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) {
+        soundControl.hidden = true;
+        return;
+      }
+
+      audioContext = new AudioContextClass();
+      masterGain = audioContext.createGain();
+      masterGain.gain.value = 0;
+      masterGain.connect(audioContext.destination);
+
+      const padFilter = audioContext.createBiquadFilter();
+      padFilter.type = "lowpass";
+      padFilter.frequency.value = 520;
+      padFilter.Q.value = 0.35;
+      padFilter.connect(masterGain);
+
+      [73.42, 110, 146.83].forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = index === 1 ? "triangle" : "sine";
+        oscillator.frequency.value = frequency;
+        oscillator.detune.value = [-4, 3, -2][index];
+        gain.gain.value = [0.010, 0.007, 0.0045][index];
+        oscillator.connect(gain).connect(padFilter);
+        oscillator.start();
+      });
+
+      const noise = audioContext.createBufferSource();
+      const noiseHighpass = audioContext.createBiquadFilter();
+      const noiseLowpass = audioContext.createBiquadFilter();
+      const noiseGain = audioContext.createGain();
+      noise.buffer = makeBrownNoise(audioContext);
+      noise.loop = true;
+      noiseHighpass.type = "highpass";
+      noiseHighpass.frequency.value = 95;
+      noiseLowpass.type = "lowpass";
+      noiseLowpass.frequency.value = 760;
+      noiseGain.gain.value = 0.018;
+      noise.connect(noiseHighpass).connect(noiseLowpass).connect(noiseGain).connect(masterGain);
+      noise.start();
+
+      const filterLfo = audioContext.createOscillator();
+      const filterLfoDepth = audioContext.createGain();
+      filterLfo.type = "sine";
+      filterLfo.frequency.value = 0.055;
+      filterLfoDepth.gain.value = 135;
+      filterLfo.connect(filterLfoDepth).connect(noiseLowpass.frequency);
+      filterLfo.start();
+
+      const volumeLfo = audioContext.createOscillator();
+      const volumeLfoDepth = audioContext.createGain();
+      volumeLfo.type = "sine";
+      volumeLfo.frequency.value = 0.035;
+      volumeLfoDepth.gain.value = 0.06;
+      volumeLfo.connect(volumeLfoDepth).connect(masterGain.gain);
+      volumeLfo.start();
+    }
+
+    function updateSoundControl(needsAction = false) {
+      soundControl.classList.toggle("needs-action", needsAction);
+      soundControl.setAttribute("aria-pressed", String(soundOn));
+      soundIcon.textContent = soundOn ? "♫" : "♪";
+      soundLabel.textContent = needsAction ? "tap for sound" : (soundOn ? "sound on" : "sound off");
+      soundControl.setAttribute("aria-label", soundOn ? "Turn ambient sound off" : "Turn ambient sound on");
+    }
+
+    function setSceneVolume(level) {
+      sceneVolume = level;
+      if (!audioContext || !masterGain || !soundOn) return;
+      const now = audioContext.currentTime;
+      masterGain.gain.cancelScheduledValues(now);
+      masterGain.gain.setTargetAtTime(SETTINGS.ambientVolume * sceneVolume, now, 0.8);
+    }
+
+    async function enableSound() {
+      buildSoundscape();
+      if (!audioContext || !masterGain) return false;
+
+      try {
+        await audioContext.resume();
+      } catch (_) {
+        updateSoundControl(true);
+        return false;
+      }
+
+      if (audioContext.state !== "running") {
+        updateSoundControl(true);
+        return false;
+      }
+
+      soundOn = true;
+      writeSoundPreference("on");
+      const now = audioContext.currentTime;
+      masterGain.gain.cancelScheduledValues(now);
+      masterGain.gain.setValueAtTime(Math.max(masterGain.gain.value, 0.0001), now);
+      masterGain.gain.setTargetAtTime(SETTINGS.ambientVolume * sceneVolume, now, 1.2);
+      updateSoundControl(false);
+      return true;
+    }
+
+    function disableSound() {
+      if (audioContext && masterGain) {
+        const now = audioContext.currentTime;
+        masterGain.gain.cancelScheduledValues(now);
+        masterGain.gain.setTargetAtTime(0.0001, now, 0.35);
+      }
+      soundOn = false;
+      writeSoundPreference("off");
+      updateSoundControl(false);
+    }
+
+    function playBreathTone(direction, durationMs) {
+      if (!soundOn || !audioContext || audioContext.state !== "running") return;
+
+      const now = audioContext.currentTime;
+      const duration = durationMs / 1000;
+      const tone = audioContext.createOscillator();
+      const overtone = audioContext.createOscillator();
+      const toneGain = audioContext.createGain();
+      const overtoneGain = audioContext.createGain();
+      const filter = audioContext.createBiquadFilter();
+
+      const start = direction === "in" ? 174.61 : 261.63;
+      const end = direction === "in" ? 261.63 : 146.83;
+
+      tone.type = "sine";
+      overtone.type = "sine";
+      tone.frequency.setValueAtTime(start, now);
+      tone.frequency.exponentialRampToValueAtTime(end, now + duration);
+      overtone.frequency.setValueAtTime(start * 1.5, now);
+      overtone.frequency.exponentialRampToValueAtTime(end * 1.5, now + duration);
+
+      toneGain.gain.setValueAtTime(0.0001, now);
+      toneGain.gain.exponentialRampToValueAtTime(0.012, now + Math.min(1.1, duration * 0.28));
+      toneGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+      overtoneGain.gain.setValueAtTime(0.0001, now);
+      overtoneGain.gain.exponentialRampToValueAtTime(0.0035, now + Math.min(1.2, duration * 0.3));
+      overtoneGain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      filter.type = "lowpass";
+      filter.frequency.value = 900;
+      tone.connect(toneGain).connect(filter);
+      overtone.connect(overtoneGain).connect(filter);
+      filter.connect(masterGain);
+      tone.start(now);
+      overtone.start(now);
+      tone.stop(now + duration + 0.05);
+      overtone.stop(now + duration + 0.05);
+    }
+
+    function playArrivalChime() {
+      if (!soundOn || !audioContext || audioContext.state !== "running") return;
+      const now = audioContext.currentTime;
+
+      [293.66, 440].forEach((frequency, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.value = frequency;
+        gain.gain.setValueAtTime(0.0001, now + index * 0.16);
+        gain.gain.exponentialRampToValueAtTime(index ? 0.006 : 0.009, now + 0.45 + index * 0.16);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2 + index * 0.16);
+        oscillator.connect(gain).connect(masterGain);
+        oscillator.start(now + index * 0.16);
+        oscillator.stop(now + 3.3 + index * 0.16);
+      });
+    }
+
+    function showScreen(screen) {
+      [breathScreen, reflectionScreen, resolutionScreen].forEach(item => {
+        item.setAttribute("aria-hidden", item === screen ? "false" : "true");
+      });
+
+      if (screen === breathScreen) setSceneVolume(1);
+      if (screen === reflectionScreen) setSceneVolume(0.62);
+      if (screen === resolutionScreen) setSceneVolume(0.38);
+    }
+
+    function animateOrb(className) {
+      orb.className = "orb";
+      void orb.offsetWidth;
+      orb.classList.add(className);
+    }
+
+    async function runBreathing() {
+      const thisRun = ++runId;
+      showScreen(breathScreen);
+      input.value = "";
+      instruction.innerHTML = "&nbsp;";
+      dots.forEach(dot => dot.classList.remove("active"));
+      orb.className = "orb";
+
+      await sleep(SETTINGS.pauseBeforeStart);
+      if (thisRun !== runId) return;
+
+      for (let breath = 0; breath < SETTINGS.breaths; breath++) {
+        dots.forEach((dot, i) => dot.classList.toggle("active", i === breath));
+
+        instruction.textContent = "Breathe in";
+        animateOrb("inhale");
+        playBreathTone("in", SETTINGS.inhaleDuration);
+        await sleep(SETTINGS.inhaleDuration);
+        if (thisRun !== runId) return;
+
+        instruction.textContent = "Breathe out";
+        animateOrb("exhale");
+        playBreathTone("out", SETTINGS.exhaleDuration);
+        await sleep(SETTINGS.exhaleDuration);
+        if (thisRun !== runId) return;
+      }
+
+      instruction.textContent = "";
+      dots.forEach(dot => dot.classList.remove("active"));
+      await sleep(550);
+      if (thisRun !== runId) return;
+
+      showScreen(reflectionScreen);
+      playArrivalChime();
+      await sleep(750);
+      input.focus();
+    }
+
+    form.addEventListener("submit", event => {
+      event.preventDefault();
+      const value = input.value.trim();
+
+      if (!value) {
+        input.focus();
+        return;
+      }
+
+      intentionText.textContent = value;
+      showScreen(resolutionScreen);
+    });
+
+    restart.addEventListener("click", runBreathing);
+
+    soundControl.addEventListener("click", async () => {
+      if (soundOn) {
+        disableSound();
+      } else {
+        await enableSound();
+      }
+    });
+
+    const unlockSound = async event => {
+      // Let the dedicated sound button handle its own click; otherwise the
+      // pointerdown and click events would toggle the sound twice.
+      if (event.target instanceof Element && event.target.closest("#soundControl")) return;
+
+      if (!soundOn && readSoundPreference() !== "off") {
+        await enableSound();
+      }
+    };
+
+    document.addEventListener("pointerdown", unlockSound, { once: true, capture: true });
+    document.addEventListener("keydown", unlockSound, { once: true, capture: true });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && resolutionScreen.getAttribute("aria-hidden") === "false") {
+        showScreen(reflectionScreen);
+        setTimeout(() => input.focus(), 500);
+      }
+    });
+
+    updateSoundControl(false);
+
+    // Browsers often block audible autoplay. Try once; if blocked, the small
+    // sound control remains as the only required gesture.
+    if (readSoundPreference() !== "off") {
+      enableSound().then(started => {
+        if (!started) updateSoundControl(true);
+      });
+    }
+
+    runBreathing();
+  </script>
+</body>
+</html>
