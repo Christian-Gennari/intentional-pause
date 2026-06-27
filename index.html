@@ -828,21 +828,24 @@
     function audioOnInhale(){
       if (!audioReady || !audioUnlocked) return;
       stopActiveWave();
-      
+
       const duration = SETTINGS.inhaleDuration / 1000;
+      const fade = Math.min(0.4, duration * 0.15);
       const { filter, gain, panner } = createWaveNodes(duration);
       const now = audioCtx.currentTime;
-      
+
       rampParam(bedGain.gain, 0.12, 0.5);
-      
+
       // Filter: rising / brighter lowpass sweep
       filter.frequency.setValueAtTime(220, now);
       filter.frequency.exponentialRampToValueAtTime(850, now + duration);
-      
-      // Gain: swell
+
+      // Gain: fade in, sustain, fade out
       gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.linearRampToValueAtTime(0.18, now + duration);
-      
+      gain.gain.linearRampToValueAtTime(0.18, now + fade);
+      gain.gain.setValueAtTime(0.18, now + duration - fade);
+      gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+
       // Pan: moves toward center (gathering inward) from left
       if (panner) {
         panner.pan.setValueAtTime(-0.75, now);
@@ -853,22 +856,23 @@
     function audioOnHold(){
       if (!audioReady || !audioUnlocked) return;
       stopActiveWave();
-      
+
       const duration = SETTINGS.holdDuration / 1000;
+      const fade = Math.min(0.3, duration * 0.2);
       const { filter, gain, panner } = createWaveNodes(duration);
       const now = audioCtx.currentTime;
-      
+
       rampParam(bedGain.gain, 0.14, 0.5);
-      
+
       // Filter: steady, neutral lowpass
       filter.frequency.setValueAtTime(320, now);
-      
-      // Gain: quiet, steady (transitioning from inhale volume)
-      gain.gain.setValueAtTime(0.12, now);
-      gain.gain.linearRampToValueAtTime(0.06, now + 0.25);
-      gain.gain.setValueAtTime(0.06, now + duration - 0.1);
-      gain.gain.linearRampToValueAtTime(0.04, now + duration);
-      
+
+      // Gain: fade in, quiet sustain, fade out
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + fade);
+      gain.gain.setValueAtTime(0.08, now + duration - fade);
+      gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+
       // Pan: centered (neutral)
       if (panner) {
         panner.pan.setValueAtTime(0.0, now);
@@ -878,21 +882,24 @@
     function audioOnExhale(){
       if (!audioReady || !audioUnlocked) return;
       stopActiveWave();
-      
+
       const duration = SETTINGS.exhaleDuration / 1000;
+      const fade = Math.min(0.5, duration * 0.12);
       const { filter, gain, panner } = createWaveNodes(duration);
       const now = audioCtx.currentTime;
-      
+
       rampParam(bedGain.gain, 0.16, 1.0);
-      
+
       // Filter: falling / darker lowpass sweep
       filter.frequency.setValueAtTime(500, now);
       filter.frequency.exponentialRampToValueAtTime(180, now + duration);
-      
-      // Gain: fading / releasing
-      gain.gain.setValueAtTime(0.14, now);
+
+      // Gain: fade in, sustain, fade out
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.14, now + fade);
+      gain.gain.setValueAtTime(0.14, now + duration - fade);
       gain.gain.linearRampToValueAtTime(0.0001, now + duration);
-      
+
       // Pan: moves outward from center to right
       if (panner) {
         panner.pan.setValueAtTime(0.0, now);
