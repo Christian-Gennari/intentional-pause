@@ -147,108 +147,88 @@
 
     .field-space{
       position:relative;
-      width:min(76vw, 460px);
-      aspect-ratio:1.34;
+      width:min(68vw, 280px);
+      height:min(68vw, 280px);
       display:grid;
       place-items:center;
       isolation:isolate;
     }
 
-    .breathing-field{
+    .breath-target-ring{
       position:absolute;
-      inset:5% 0;
-      transform:scale(.78);
-      opacity:.88;
-      filter:saturate(104%);
-      transition:opacity 500ms ease;
-      will-change:transform, filter, opacity;
+      width:100%;
+      height:100%;
+      border-radius:50%;
+      border:1px dashed var(--faint);
+      opacity:.25;
+      pointer-events:none;
+      animation:rotate-target 40s linear infinite;
     }
 
-    .breathing-field.inhale{animation:field-inhale var(--inhale-duration) cubic-bezier(.42,0,.18,1) forwards}
-    .breathing-field.exhale{animation:field-exhale var(--exhale-duration) cubic-bezier(.38,0,.2,1) forwards}
+    @keyframes rotate-target{
+      from{transform:rotate(0deg)}
+      to{transform:rotate(360deg)}
+    }
+
+    .breathing-field{
+      position:absolute;
+      width:98%;
+      height:98%;
+      border-radius:50%;
+      transform:scale(.6);
+      opacity:.8;
+      display:grid;
+      place-items:center;
+      transition:opacity 500ms ease;
+      will-change:transform, opacity;
+    }
+
+    .breathing-field.inhale{animation:field-inhale var(--inhale-duration) cubic-bezier(.36,.07,.19,.97) forwards}
+    .breathing-field.exhale{animation:field-exhale var(--exhale-duration) cubic-bezier(.36,.07,.19,.97) forwards}
 
     @keyframes field-inhale{
-      from{transform:scale(.78);filter:saturate(96%) blur(0);opacity:.78}
-      to{transform:scale(1.08);filter:saturate(112%) blur(.2px);opacity:1}
+      from{transform:scale(.55);opacity:.75}
+      to{transform:scale(.95);opacity:1}
     }
 
     @keyframes field-exhale{
-      from{transform:scale(1.08);filter:saturate(112%) blur(.2px);opacity:1}
-      to{transform:scale(.78);filter:saturate(96%) blur(0);opacity:.78}
+      from{transform:scale(.95);opacity:1}
+      to{transform:scale(.55);opacity:.75}
     }
 
-    .field-layer{
+    .circle-glow{
+      position:absolute;
+      inset:-12px;
+      border-radius:50%;
+      background:radial-gradient(circle, var(--field-a) 0%, transparent 70%);
+      opacity:.52;
+      filter:blur(14px);
+      animation:glow-pulse 4s ease-in-out infinite alternate;
+    }
+
+    @keyframes glow-pulse{
+      from{transform:scale(.94);opacity:.42}
+      to{transform:scale(1.06);opacity:.68}
+    }
+
+    .circle-ring{
       position:absolute;
       inset:0;
-      border-radius:50% 44% 56% 48% / 44% 56% 42% 58%;
-      transform-origin:center;
-      mix-blend-mode:soft-light;
-    }
-
-    .field-layer.one{
-      background:radial-gradient(ellipse at 45% 48%, var(--field-a) 0%, rgba(196,218,204,.38) 36%, transparent 70%);
-      filter:blur(12px);
-      animation:drift-one 18s ease-in-out infinite alternate;
-    }
-
-    .field-layer.two{
-      inset:9% 8%;
-      background:radial-gradient(ellipse at 56% 42%, var(--field-b) 0%, rgba(132,169,146,.24) 42%, transparent 74%);
-      filter:blur(18px);
-      animation:drift-two 21s ease-in-out infinite alternate;
-    }
-
-    .field-layer.three{
-      inset:13% 2%;
-      background:radial-gradient(ellipse at 50% 54%, var(--field-c) 0%, rgba(230,239,233,.34) 34%, transparent 68%);
-      filter:blur(26px);
-      animation:drift-three 24s ease-in-out infinite alternate;
-    }
-
-    .current{
-      position:absolute;
-      left:7%;
-      right:7%;
-      height:1px;
-      border-radius:999px;
-      background:linear-gradient(90deg, transparent, rgba(255,255,255,.75), rgba(100,135,114,.34), transparent);
-      opacity:.42;
-      filter:blur(.2px);
-      transform:translateY(var(--y)) rotate(var(--r));
-    }
-
-    .current.c1{--y:-74px;--r:-7deg}
-    .current.c2{--y:-34px;--r:4deg;opacity:.34}
-    .current.c3{--y:12px;--r:-2deg;opacity:.30}
-    .current.c4{--y:58px;--r:6deg;opacity:.24}
-
-    .field-horizon{
-      position:absolute;
-      width:82%;
-      height:46%;
       border-radius:50%;
-      border:1px solid rgba(255,255,255,.38);
-      border-left-color:transparent;
-      border-right-color:transparent;
-      opacity:.34;
-      filter:blur(.4px);
+      border:1.5px solid var(--glass-strong);
+      background:var(--glass);
+      backdrop-filter:blur(8px);
+      -webkit-backdrop-filter:blur(8px);
+      box-shadow:inset 0 2px 4px rgba(255,255,255,.15), 0 8px 32px var(--shadow);
     }
 
-    .field-shadow{
+    .circle-core{
       position:absolute;
-      width:62%;
-      height:10%;
-      bottom:9%;
+      inset:12%;
       border-radius:50%;
-      background:radial-gradient(ellipse, var(--field-d), transparent 70%);
-      filter:blur(18px);
-      opacity:.72;
-      z-index:-1;
+      background:linear-gradient(135deg, var(--field-a) 0%, var(--field-b) 100%);
+      box-shadow:inset 0 -4px 10px rgba(0,0,0,.04), 0 4px 12px rgba(100,135,114,.12);
     }
-
-    @keyframes drift-one{to{border-radius:45% 55% 46% 54% / 52% 45% 55% 48%;transform:rotate(3deg) translateX(1.5%)}}
-    @keyframes drift-two{to{border-radius:56% 44% 52% 48% / 46% 58% 42% 54%;transform:rotate(-4deg) translateY(2%)}}
-    @keyframes drift-three{to{border-radius:50% 50% 42% 58% / 56% 46% 54% 44%;transform:rotate(2deg) translateX(-1%)}}
 
     .instruction{
       min-height:1.5em;
@@ -399,8 +379,7 @@
     @media (max-width:560px){
       .card{padding:24px 18px;border-radius:28px}
       .breath-card{padding-top:28px;padding-bottom:24px}
-      .field-space{width:min(88vw, 390px);aspect-ratio:1.08}
-      .current.c1{--y:-58px}.current.c2{--y:-25px}.current.c3{--y:8px}.current.c4{--y:42px}
+      .field-space{width:min(74vw, 240px);height:min(74vw, 240px)}
       .answer-wrap{margin-top:34px}
       .sub{font-size:.96rem}
     }
@@ -410,9 +389,10 @@
       .wash{filter:none}
       .breathing-field.inhale{animation:gentle-inhale var(--inhale-duration) linear forwards}
       .breathing-field.exhale{animation:gentle-exhale var(--exhale-duration) linear forwards}
-      .field-layer{animation:none !important}
-      @keyframes gentle-inhale{from{transform:scale(.86)}to{transform:scale(1.02)}}
-      @keyframes gentle-exhale{from{transform:scale(1.02)}to{transform:scale(.86)}}
+      .circle-glow{animation:none !important}
+      .breath-target-ring{animation:none !important}
+      @keyframes gentle-inhale{from{transform:scale(.6)}to{transform:scale(.95)}}
+      @keyframes gentle-exhale{from{transform:scale(.95)}to{transform:scale(.6)}}
     }
   </style>
 </head>
@@ -427,16 +407,11 @@
         <p class="eyebrow">A brief return</p>
         <div class="breath-stage">
           <div class="field-space" aria-hidden="true">
-            <div class="field-shadow"></div>
+            <div class="breath-target-ring"></div>
             <div class="breathing-field" id="breathingField">
-              <div class="field-layer one"></div>
-              <div class="field-layer two"></div>
-              <div class="field-layer three"></div>
-              <div class="field-horizon"></div>
-              <span class="current c1"></span>
-              <span class="current c2"></span>
-              <span class="current c3"></span>
-              <span class="current c4"></span>
+              <div class="circle-glow"></div>
+              <div class="circle-ring"></div>
+              <div class="circle-core"></div>
             </div>
           </div>
 
@@ -616,7 +591,7 @@
       masterGain.connect(audioCtx.destination);
 
       bedGain = audioCtx.createGain();
-      bedGain.gain.value = 0.030;
+      bedGain.gain.value = 0.18;
       bedGain.connect(masterGain);
 
       swellGain = audioCtx.createGain();
@@ -626,8 +601,8 @@
       const merger = audioCtx.createChannelMerger(2);
       const leftGain = audioCtx.createGain();
       const rightGain = audioCtx.createGain();
-      leftGain.gain.value = 0.010;
-      rightGain.gain.value = 0.010;
+      leftGain.gain.value = 0.12;
+      rightGain.gain.value = 0.12;
 
       leftTone = audioCtx.createOscillator();
       rightTone = audioCtx.createOscillator();
@@ -645,7 +620,7 @@
       bedFilter.Q.value = 0.35;
 
       const bedNoiseGain = audioCtx.createGain();
-      bedNoiseGain.gain.value = 0.010;
+      bedNoiseGain.gain.value = 0.08;
       bedNoise = audioCtx.createBufferSource();
       bedNoise.buffer = createPinkishNoiseBuffer(audioCtx, 3);
       bedNoise.loop = true;
@@ -702,12 +677,12 @@
     function updateAudioMood(screen){
       if (!audioReady || !audioUnlocked) return;
       if (screen === breathScreen){
-        rampParam(bedGain.gain, 0.030, 1.2);
+        rampParam(bedGain.gain, 0.18, 1.2);
       }else if (screen === reflectionScreen){
-        rampParam(bedGain.gain, 0.019, 1.4);
+        rampParam(bedGain.gain, 0.10, 1.4);
         rampParam(swellGain.gain, 0.0001, 1.2);
       }else{
-        rampParam(bedGain.gain, 0.015, 1.4);
+        rampParam(bedGain.gain, 0.08, 1.4);
         rampParam(swellGain.gain, 0.0001, 1.2);
       }
     }
@@ -719,7 +694,7 @@
       breathFilter.frequency.cancelScheduledValues(now);
       swellGain.gain.setValueAtTime(Math.max(swellGain.gain.value, 0.0001), now);
       breathFilter.frequency.setValueAtTime(breathFilter.frequency.value, now);
-      swellGain.gain.linearRampToValueAtTime(0.030, now + SETTINGS.inhaleDuration / 1000);
+      swellGain.gain.linearRampToValueAtTime(0.22, now + SETTINGS.inhaleDuration / 1000);
       breathFilter.frequency.linearRampToValueAtTime(980, now + SETTINGS.inhaleDuration / 1000);
     }
 
@@ -730,7 +705,7 @@
       breathFilter.frequency.cancelScheduledValues(now);
       swellGain.gain.setValueAtTime(Math.max(swellGain.gain.value, 0.0001), now);
       breathFilter.frequency.setValueAtTime(breathFilter.frequency.value, now);
-      swellGain.gain.linearRampToValueAtTime(0.009, now + SETTINGS.exhaleDuration / 1000);
+      swellGain.gain.linearRampToValueAtTime(0.07, now + SETTINGS.exhaleDuration / 1000);
       breathFilter.frequency.linearRampToValueAtTime(430, now + SETTINGS.exhaleDuration / 1000);
     }
 
@@ -750,7 +725,7 @@
       osc2.connect(gain);
       osc1.start(now);
       osc2.start(now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.026, now + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.08);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
       osc1.stop(now + 2.45);
       osc2.stop(now + 2.45);

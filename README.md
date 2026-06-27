@@ -11,10 +11,11 @@ A one-file static webpage for page-blocker redirects.
 
 ## What changed in this version
 
-- The central orb has been replaced with a calm abstract breathing field.
-- The typography now uses a cleaner humanist sans-serif stack.
-- The Web Audio soundscape has two layers:
-  - a subtle stereo binaural bed
+- The visual cue is now a clear, elegant breathing circle that expands on inhale and contracts on exhale.
+- The soundscape volume has been adjusted to be clearly audible and supportive while remaining soft.
+- The typography uses a clean humanist sans-serif stack.
+- The Web Audio soundscape features two layers:
+  - a stereo binaural bed
   - a separate breath-synced swell for inhale/exhale movement
 
 There are no dependencies, accounts, analytics, cookies, builds, or backend. Everything is generated inside `index.html`.
