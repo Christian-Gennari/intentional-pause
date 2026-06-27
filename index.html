@@ -554,11 +554,11 @@
       }
     });
 
-    /* ---------- Audio: binaural bed + breath-synced swell ---------- */
+    /* ---------- Audio: binaural bed + zen breath cues ---------- */
 
     let audioCtx;
-    let masterGain, bedGain, swellGain, bedFilter, breathFilter;
-    let leftTone, rightTone, bedNoise, swellNoise, slowLfo, slowLfoGain;
+    let masterGain, bedGain, bedFilter;
+    let leftTone, rightTone, bedNoise, slowLfo, slowLfoGain;
     let audioReady = false;
     let audioUnlocked = false;
     let soundToggleClick = false;
@@ -593,10 +593,6 @@
       bedGain = audioCtx.createGain();
       bedGain.gain.value = 0.18;
       bedGain.connect(masterGain);
-
-      swellGain = audioCtx.createGain();
-      swellGain.gain.value = 0.0001;
-      swellGain.connect(masterGain);
 
       const merger = audioCtx.createChannelMerger(2);
       const leftGain = audioCtx.createGain();
@@ -633,20 +629,9 @@
       slowLfoGain.gain.value = 18;
       slowLfo.connect(slowLfoGain).connect(bedFilter.frequency);
 
-      breathFilter = audioCtx.createBiquadFilter();
-      breathFilter.type = "bandpass";
-      breathFilter.frequency.value = 620;
-      breathFilter.Q.value = 0.55;
-
-      swellNoise = audioCtx.createBufferSource();
-      swellNoise.buffer = createPinkishNoiseBuffer(audioCtx, 2);
-      swellNoise.loop = true;
-      swellNoise.connect(breathFilter).connect(swellGain);
-
       leftTone.start();
       rightTone.start();
       bedNoise.start();
-      swellNoise.start();
       slowLfo.start();
 
       audioReady = true;
@@ -680,33 +665,134 @@
         rampParam(bedGain.gain, 0.18, 1.2);
       }else if (screen === reflectionScreen){
         rampParam(bedGain.gain, 0.10, 1.4);
-        rampParam(swellGain.gain, 0.0001, 1.2);
       }else{
         rampParam(bedGain.gain, 0.08, 1.4);
-        rampParam(swellGain.gain, 0.0001, 1.2);
       }
+    }
+
+    function connectWithPan(source, panValue, destination){
+      if (audioCtx.createStereoPanner && panValue !== 0){
+        const panner = audioCtx.createStereoPanner();
+        panner.pan.value = panValue;
+        source.connect(panner);
+        panner.connect(destination);
+      }else{
+        source.connect(destination);
+      }
+    }
+
+    function strikeBell({ time, baseFreq, partials, volume, attack, decay, pan = 0, filterStart = 1800, filterEnd = 700, pitchDrift = 1 }){
+      const voiceGain = audioCtx.createGain();
+      const voiceFilter = audioCtx.createBiquadFilter();
+      voiceFilter.type = "lowpass";
+      voiceFilter.frequency.setValueAtTime(filterStart, time);
+      voiceFilter.frequency.exponentialRampToValueAtTime(filterEnd, time + decay * 0.82);
+      voiceFilter.Q.value = 0.38;
+
+      voiceGain.gain.setValueAtTime(0.0001, time);
+      voiceGain.gain.exponentialRampToValueAtTime(volume, time + attack);
+      voiceGain.gain.exponentialRampToValueAtTime(0.0001, time + decay);
+      voiceGain.connect(voiceFilter);
+      connectWithPan(voiceFilter, pan, masterGain);
+
+      partials.forEach(({ ratio, gain = 1, detune = 0 }) => {
+        const osc = audioCtx.createOscillator();
+        const partialGain = audioCtx.createGain();
+        const startFreq = baseFreq * ratio;
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(startFreq, time);
+        osc.frequency.exponentialRampToValueAtTime(startFreq * pitchDrift, time + decay * 0.78);
+        osc.detune.value = detune;
+        partialGain.gain.value = gain;
+        osc.connect(partialGain).connect(voiceGain);
+        osc.start(time);
+        osc.stop(time + decay + 0.12);
+      });
     }
 
     function audioOnInhale(){
       if (!audioReady || !audioUnlocked) return;
       const now = audioCtx.currentTime;
-      swellGain.gain.cancelScheduledValues(now);
-      breathFilter.frequency.cancelScheduledValues(now);
-      swellGain.gain.setValueAtTime(Math.max(swellGain.gain.value, 0.0001), now);
-      breathFilter.frequency.setValueAtTime(breathFilter.frequency.value, now);
-      swellGain.gain.linearRampToValueAtTime(0.22, now + SETTINGS.inhaleDuration / 1000);
-      breathFilter.frequency.linearRampToValueAtTime(980, now + SETTINGS.inhaleDuration / 1000);
+      const duration = SETTINGS.inhaleDuration / 1000;
+
+      // Clear “begin inhale” cue: one soft bowl strike opening upward, not a wave.
+      rampParam(bedGain.gain, 0.12, 0.45);
+      strikeBell({
+        time: now + 0.02,
+        baseFreq: 392,
+        partials: [
+          { ratio: 1, gain: 1 },
+          { ratio: 2.01, gain: 0.42, detune: 4 },
+          { ratio: 2.99, gain: 0.18, detune: -3 }
+        ],
+        volume: 0.052,
+        attack: 0.09,
+        decay: Math.min(3.7, duration + 0.2),
+        pan: -0.08,
+        filterStart: 900,
+        filterEnd: 2200,
+        pitchDrift: 1.055
+      });
+
+      // A faint upper shimmer arrives late in the inhale to say “keep rising”.
+      strikeBell({
+        time: now + duration * 0.48,
+        baseFreq: 784,
+        partials: [
+          { ratio: 1, gain: 0.72 },
+          { ratio: 2.02, gain: 0.20, detune: 5 }
+        ],
+        volume: 0.022,
+        attack: 0.12,
+        decay: 1.65,
+        pan: 0.16,
+        filterStart: 1400,
+        filterEnd: 2600,
+        pitchDrift: 1.025
+      });
     }
 
     function audioOnExhale(){
       if (!audioReady || !audioUnlocked) return;
       const now = audioCtx.currentTime;
-      swellGain.gain.cancelScheduledValues(now);
-      breathFilter.frequency.cancelScheduledValues(now);
-      swellGain.gain.setValueAtTime(Math.max(swellGain.gain.value, 0.0001), now);
-      breathFilter.frequency.setValueAtTime(breathFilter.frequency.value, now);
-      swellGain.gain.linearRampToValueAtTime(0.07, now + SETTINGS.exhaleDuration / 1000);
-      breathFilter.frequency.linearRampToValueAtTime(430, now + SETTINGS.exhaleDuration / 1000);
+      const duration = SETTINGS.exhaleDuration / 1000;
+
+      // Clear “begin exhale” cue: deeper bowl strike that settles downward.
+      rampParam(bedGain.gain, 0.14, 1.2);
+      strikeBell({
+        time: now + 0.02,
+        baseFreq: 196,
+        partials: [
+          { ratio: 1, gain: 1 },
+          { ratio: 1.505, gain: 0.46, detune: -2 },
+          { ratio: 2.01, gain: 0.28, detune: 3 },
+          { ratio: 2.98, gain: 0.10, detune: -5 }
+        ],
+        volume: 0.070,
+        attack: 0.14,
+        decay: Math.min(5.8, duration + 0.1),
+        pan: 0.06,
+        filterStart: 1100,
+        filterEnd: 260,
+        pitchDrift: 0.965
+      });
+
+      // A very quiet final low resonance reinforces “release”.
+      strikeBell({
+        time: now + duration * 0.36,
+        baseFreq: 130.81,
+        partials: [
+          { ratio: 1, gain: 0.9 },
+          { ratio: 2, gain: 0.22 }
+        ],
+        volume: 0.024,
+        attack: 0.18,
+        decay: 3.0,
+        pan: -0.12,
+        filterStart: 620,
+        filterEnd: 180,
+        pitchDrift: 0.985
+      });
     }
 
     function audioSoftChime(){
