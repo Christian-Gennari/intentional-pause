@@ -681,140 +681,124 @@
       }
     }
 
-    function strikeBell({ time, baseFreq, partials, volume, attack, decay, pan = 0, filterStart = 1800, filterEnd = 700, pitchDrift = 1 }){
+    const TEMPLE_PARTIALS = [
+      { ratio: 1.0,  gain: 0.8 },
+      { ratio: 2.01, gain: 0.35 },
+      { ratio: 2.98, gain: 0.22 },
+      { ratio: 4.15, gain: 0.15 },
+      { ratio: 5.38, gain: 0.08 },
+      { ratio: 6.21, gain: 0.04 }
+    ];
+
+    function triggerTemplePing({ time = audioCtx.currentTime, baseFreq, partials, volume, decay, pan = 0 }){
       const voiceGain = audioCtx.createGain();
       const voiceFilter = audioCtx.createBiquadFilter();
       voiceFilter.type = "lowpass";
-      voiceFilter.frequency.setValueAtTime(filterStart, time);
-      voiceFilter.frequency.exponentialRampToValueAtTime(filterEnd, time + decay * 0.82);
-      voiceFilter.Q.value = 0.38;
+      
+      // Bell filter sweep: starts bright and relaxes into warmth
+      voiceFilter.frequency.setValueAtTime(4500, time);
+      voiceFilter.frequency.exponentialRampToValueAtTime(1000, time + decay * 0.85);
+      voiceFilter.Q.value = 0.8;
 
       voiceGain.gain.setValueAtTime(0.0001, time);
-      voiceGain.gain.exponentialRampToValueAtTime(volume, time + attack);
+      voiceGain.gain.linearRampToValueAtTime(volume, time + 0.03); // Soft, clean attack (30ms) to avoid clicks
       voiceGain.gain.exponentialRampToValueAtTime(0.0001, time + decay);
       voiceGain.connect(voiceFilter);
       connectWithPan(voiceFilter, pan, masterGain);
 
-      partials.forEach(({ ratio, gain = 1, detune = 0 }) => {
+      const oscs = [];
+      const oscGains = [];
+
+      partials.forEach(({ ratio, gain }) => {
         const osc = audioCtx.createOscillator();
-        const partialGain = audioCtx.createGain();
-        const startFreq = baseFreq * ratio;
+        const pGain = audioCtx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(startFreq, time);
-        osc.frequency.exponentialRampToValueAtTime(startFreq * pitchDrift, time + decay * 0.78);
-        osc.detune.value = detune;
-        partialGain.gain.value = gain;
-        osc.connect(partialGain).connect(voiceGain);
+        osc.frequency.setValueAtTime(baseFreq * ratio, time);
+        
+        pGain.gain.setValueAtTime(gain, time);
+        // Higher partials decay faster for realistic bell characteristics
+        const pDecay = decay * Math.max(0.15, Math.pow(ratio, -0.65));
+        pGain.gain.exponentialRampToValueAtTime(0.0001, time + pDecay);
+
+        osc.connect(pGain).connect(voiceGain);
         osc.start(time);
-        osc.stop(time + decay + 0.12);
+        osc.stop(time + decay + 0.1);
+
+        oscs.push(osc);
+        oscGains.push(pGain);
       });
+
+      // Cleanup nodes after decay to prevent memory leakage
+      setTimeout(() => {
+        try {
+          voiceGain.disconnect();
+          voiceFilter.disconnect();
+          oscs.forEach(osc => osc.disconnect());
+          oscGains.forEach(g => g.disconnect());
+        } catch(e) {}
+      }, (decay + 0.5) * 1000);
     }
 
     function audioOnInhale(){
       if (!audioReady || !audioUnlocked) return;
       const now = audioCtx.currentTime;
-      const duration = SETTINGS.inhaleDuration / 1000;
-
-      // Clear “begin inhale” cue: one soft bowl strike opening upward, not a wave.
+      
+      // Quiet down the background bed slightly to let the bell ping ring out beautifully
       rampParam(bedGain.gain, 0.12, 0.45);
-      strikeBell({
+      
+      // Single light, opening temple bell ping at E5 (659.25 Hz)
+      triggerTemplePing({
         time: now + 0.02,
-        baseFreq: 392,
-        partials: [
-          { ratio: 1, gain: 1 },
-          { ratio: 2.01, gain: 0.42, detune: 4 },
-          { ratio: 2.99, gain: 0.18, detune: -3 }
-        ],
-        volume: 0.052,
-        attack: 0.09,
-        decay: Math.min(3.7, duration + 0.2),
-        pan: -0.08,
-        filterStart: 900,
-        filterEnd: 2200,
-        pitchDrift: 1.055
-      });
-
-      // A faint upper shimmer arrives late in the inhale to say “keep rising”.
-      strikeBell({
-        time: now + duration * 0.48,
-        baseFreq: 784,
-        partials: [
-          { ratio: 1, gain: 0.72 },
-          { ratio: 2.02, gain: 0.20, detune: 5 }
-        ],
-        volume: 0.022,
-        attack: 0.12,
-        decay: 1.65,
-        pan: 0.16,
-        filterStart: 1400,
-        filterEnd: 2600,
-        pitchDrift: 1.025
+        baseFreq: 659.25,
+        partials: TEMPLE_PARTIALS,
+        volume: 0.065,
+        decay: 3.5,
+        pan: -0.15
       });
     }
 
     function audioOnExhale(){
       if (!audioReady || !audioUnlocked) return;
       const now = audioCtx.currentTime;
-      const duration = SETTINGS.exhaleDuration / 1000;
-
-      // Clear “begin exhale” cue: deeper bowl strike that settles downward.
+      
+      // Settle the background bed
       rampParam(bedGain.gain, 0.14, 1.2);
-      strikeBell({
+      
+      // Single deeper, settling temple bell ping at A4 (440.0 Hz)
+      triggerTemplePing({
         time: now + 0.02,
-        baseFreq: 196,
-        partials: [
-          { ratio: 1, gain: 1 },
-          { ratio: 1.505, gain: 0.46, detune: -2 },
-          { ratio: 2.01, gain: 0.28, detune: 3 },
-          { ratio: 2.98, gain: 0.10, detune: -5 }
-        ],
-        volume: 0.070,
-        attack: 0.14,
-        decay: Math.min(5.8, duration + 0.1),
-        pan: 0.06,
-        filterStart: 1100,
-        filterEnd: 260,
-        pitchDrift: 0.965
-      });
-
-      // A very quiet final low resonance reinforces “release”.
-      strikeBell({
-        time: now + duration * 0.36,
-        baseFreq: 130.81,
-        partials: [
-          { ratio: 1, gain: 0.9 },
-          { ratio: 2, gain: 0.22 }
-        ],
-        volume: 0.024,
-        attack: 0.18,
-        decay: 3.0,
-        pan: -0.12,
-        filterStart: 620,
-        filterEnd: 180,
-        pitchDrift: 0.985
+        baseFreq: 440.0,
+        partials: TEMPLE_PARTIALS,
+        volume: 0.075,
+        decay: 4.5,
+        pan: 0.15
       });
     }
 
     function audioSoftChime(){
       if (!audioReady || !audioUnlocked) return;
       const now = audioCtx.currentTime;
-      const osc1 = audioCtx.createOscillator();
-      const osc2 = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc1.type = "sine";
-      osc2.type = "sine";
-      osc1.frequency.value = 659.25;
-      osc2.frequency.value = 987.77;
-      gain.gain.value = 0.0001;
-      gain.connect(masterGain);
-      osc1.connect(gain);
-      osc2.connect(gain);
-      osc1.start(now);
-      osc2.start(now + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
-      osc1.stop(now + 2.45);
-      osc2.stop(now + 2.45);
+      
+      // Double ping (ting-sha meditation bells): two cymbals ringing together with a slight offset
+      // tuned to a bright, clear G5 (784.0 Hz) and a slightly detuned partner G5 (787.5 Hz)
+      // to create a beautiful, organic beating resonance.
+      triggerTemplePing({
+        time: now,
+        baseFreq: 784.0,
+        partials: TEMPLE_PARTIALS,
+        volume: 0.055,
+        decay: 4.0,
+        pan: -0.2
+      });
+
+      triggerTemplePing({
+        time: now + 0.24,
+        baseFreq: 787.5,
+        partials: TEMPLE_PARTIALS,
+        volume: 0.055,
+        decay: 4.0,
+        pan: 0.2
+      });
     }
 
     soundToggle.addEventListener("click", async (event) => {
