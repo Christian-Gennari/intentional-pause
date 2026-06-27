@@ -460,6 +460,7 @@
     const SETTINGS = {
       pauseBeforeStart: 1000,
       inhaleDuration: 4000,
+      holdDuration: 2000,
       exhaleDuration: 6000,
       breaths: 2
     };
@@ -515,6 +516,10 @@
         animateField("inhale");
         audioOnInhale();
         await sleep(SETTINGS.inhaleDuration);
+        if (thisRun !== runId) return;
+
+        instruction.innerHTML = "<strong>Hold</strong>";
+        await sleep(SETTINGS.holdDuration);
         if (thisRun !== runId) return;
 
         instruction.innerHTML = "<strong>Breathe out</strong>";

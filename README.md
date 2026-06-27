@@ -5,7 +5,7 @@ A one-file static webpage for page-blocker redirects.
 ## Flow
 
 1. One second of stillness
-2. Two automatic breaths
+2. Two automatic breaths (inhale 4s, hold 2s, exhale 6s)
 3. “What is important right now?”
 4. Type one intention and press Enter
 
@@ -35,6 +35,7 @@ Near the bottom of `index.html`:
 const SETTINGS = {
   pauseBeforeStart: 1000,
   inhaleDuration: 4000,
+  holdDuration: 2000,
   exhaleDuration: 6000,
   breaths: 2
 };
