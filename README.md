@@ -16,7 +16,7 @@ A one-file static webpage for page-blocker redirects.
 - The typography uses a clean humanist sans-serif stack.
 - The Web Audio soundscape features two layers:
   - a stereo binaural bed
-  - distinct, resonant temple bell / ting-sha cues for inhale, exhale, and transition
+  - distinct directional wave cues for inhale, hold, and exhale, plus a final transition signal
 
 There are no dependencies, accounts, analytics, cookies, builds, or backend. Everything is generated inside `index.html`.
 
@@ -45,4 +45,11 @@ Durations are in milliseconds. You can also edit the reflection question, helper
 
 ## Sound
 
-The ambient soundscape is generated in the browser with Web Audio, featuring realistic temple bell/ting-sha pings with inharmonic partials and natural frequency-dependent decay to guide breathing: a higher, opening temple bell ping for inhale, a lower, settling ping for exhale, and an organic double-ping (ting-sha resonance) to transition to reflection. Some browsers block autoplay sound until the first interaction; when that happens, a small “tap for sound” control appears.
+The ambient soundscape is generated in the browser with Web Audio, featuring a stereo binaural bed and automated directional wave cues that shape noise and filters to guide the breathing cycle:
+- **Inhale**: A rising, brighter wave cue that swells in volume and pans from left to center.
+- **Hold**: A flat, steady, quiet wave cue centered in the stereo field.
+- **Exhale**: A falling, darker wave cue that fades out and pans from center to right.
+- **Transition**: A clear, resonant double-ping (ting-sha resonance) with inharmonic partials and frequency-dependent decay to signal the shift to reflection.
+
+Some browsers block autoplay sound until the first interaction; when that happens, a small “tap for sound” control appears.
+

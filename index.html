@@ -499,6 +499,7 @@
 
     async function runBreathing(){
       const thisRun = ++runId;
+      stopActiveWave();
       showScreen(breathScreen);
       input.value = "";
       intentionText.textContent = "";
@@ -519,6 +520,7 @@
         if (thisRun !== runId) return;
 
         instruction.innerHTML = "<strong>Hold</strong>";
+        audioOnHold();
         await sleep(SETTINGS.holdDuration);
         if (thisRun !== runId) return;
 
@@ -559,7 +561,7 @@
       }
     });
 
-    /* ---------- Audio: binaural bed + zen breath cues ---------- */
+    /* ---------- Audio: binaural bed + directional wave breath cues ---------- */
 
     let audioCtx;
     let masterGain, bedGain, bedFilter;
@@ -567,6 +569,15 @@
     let audioReady = false;
     let audioUnlocked = false;
     let soundToggleClick = false;
+    let activeWaveNodes = null;
+    let sharedNoiseBuffer = null;
+
+    function getNoiseBuffer() {
+      if (!sharedNoiseBuffer) {
+        sharedNoiseBuffer = createPinkishNoiseBuffer(audioCtx, 10);
+      }
+      return sharedNoiseBuffer;
+    }
 
     function createPinkishNoiseBuffer(context, seconds = 2){
       const length = context.sampleRate * seconds;
@@ -669,8 +680,10 @@
       if (screen === breathScreen){
         rampParam(bedGain.gain, 0.18, 1.2);
       }else if (screen === reflectionScreen){
+        stopActiveWave();
         rampParam(bedGain.gain, 0.10, 1.4);
       }else{
+        stopActiveWave();
         rampParam(bedGain.gain, 0.08, 1.4);
       }
     }
@@ -744,40 +757,147 @@
       }, (decay + 0.5) * 1000);
     }
 
+    function stopActiveWave() {
+      if (!audioReady || !audioCtx) return;
+      if (activeWaveNodes) {
+        const { source, filter, gain, panner, timeoutId } = activeWaveNodes;
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        const now = audioCtx.currentTime;
+        try {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.setValueAtTime(gain.gain.value, now);
+          gain.gain.linearRampToValueAtTime(0.0001, now + 0.1);
+        } catch(e) {}
+
+        setTimeout(() => {
+          try {
+            source.stop();
+          } catch(e) {}
+          try {
+            source.disconnect();
+            filter.disconnect();
+            gain.disconnect();
+            if (panner) panner.disconnect();
+          } catch(e) {}
+        }, 120);
+
+        activeWaveNodes = null;
+      }
+    }
+
+    function createWaveNodes(duration) {
+      const now = audioCtx.currentTime;
+      const source = audioCtx.createBufferSource();
+      source.buffer = getNoiseBuffer();
+      source.loop = true;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = "lowpass";
+
+      const gain = audioCtx.createGain();
+
+      let panner = null;
+      if (audioCtx.createStereoPanner) {
+        panner = audioCtx.createStereoPanner();
+        source.connect(filter).connect(gain).connect(panner).connect(masterGain);
+      } else {
+        source.connect(filter).connect(gain).connect(masterGain);
+      }
+
+      source.start(now);
+      source.stop(now + duration);
+
+      const timeoutId = setTimeout(() => {
+        if (activeWaveNodes && activeWaveNodes.source === source) {
+          try { source.stop(); } catch(e) {}
+          try {
+            source.disconnect();
+            filter.disconnect();
+            gain.disconnect();
+            if (panner) panner.disconnect();
+          } catch(e) {}
+          activeWaveNodes = null;
+        }
+      }, duration * 1000 + 100);
+
+      activeWaveNodes = { source, filter, gain, panner, timeoutId };
+      return activeWaveNodes;
+    }
+
     function audioOnInhale(){
       if (!audioReady || !audioUnlocked) return;
+      stopActiveWave();
+      
+      const duration = SETTINGS.inhaleDuration / 1000;
+      const { filter, gain, panner } = createWaveNodes(duration);
       const now = audioCtx.currentTime;
       
-      // Quiet down the background bed slightly to let the bell ping ring out beautifully
-      rampParam(bedGain.gain, 0.12, 0.45);
+      rampParam(bedGain.gain, 0.12, 0.5);
       
-      // Single light, opening temple bell ping at E5 (659.25 Hz)
-      triggerTemplePing({
-        time: now + 0.02,
-        baseFreq: 659.25,
-        partials: TEMPLE_PARTIALS,
-        volume: 0.065,
-        decay: 3.5,
-        pan: -0.15
-      });
+      // Filter: rising / brighter lowpass sweep
+      filter.frequency.setValueAtTime(220, now);
+      filter.frequency.exponentialRampToValueAtTime(850, now + duration);
+      
+      // Gain: swell
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + duration);
+      
+      // Pan: moves toward center (gathering inward) from left
+      if (panner) {
+        panner.pan.setValueAtTime(-0.75, now);
+        panner.pan.linearRampToValueAtTime(0.0, now + duration);
+      }
+    }
+
+    function audioOnHold(){
+      if (!audioReady || !audioUnlocked) return;
+      stopActiveWave();
+      
+      const duration = SETTINGS.holdDuration / 1000;
+      const { filter, gain, panner } = createWaveNodes(duration);
+      const now = audioCtx.currentTime;
+      
+      rampParam(bedGain.gain, 0.14, 0.5);
+      
+      // Filter: steady, neutral lowpass
+      filter.frequency.setValueAtTime(320, now);
+      
+      // Gain: quiet, steady (transitioning from inhale volume)
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.linearRampToValueAtTime(0.06, now + 0.25);
+      gain.gain.setValueAtTime(0.06, now + duration - 0.1);
+      gain.gain.linearRampToValueAtTime(0.04, now + duration);
+      
+      // Pan: centered (neutral)
+      if (panner) {
+        panner.pan.setValueAtTime(0.0, now);
+      }
     }
 
     function audioOnExhale(){
       if (!audioReady || !audioUnlocked) return;
+      stopActiveWave();
+      
+      const duration = SETTINGS.exhaleDuration / 1000;
+      const { filter, gain, panner } = createWaveNodes(duration);
       const now = audioCtx.currentTime;
       
-      // Settle the background bed
-      rampParam(bedGain.gain, 0.14, 1.2);
+      rampParam(bedGain.gain, 0.16, 1.0);
       
-      // Single deeper, settling temple bell ping at A4 (440.0 Hz)
-      triggerTemplePing({
-        time: now + 0.02,
-        baseFreq: 440.0,
-        partials: TEMPLE_PARTIALS,
-        volume: 0.075,
-        decay: 4.5,
-        pan: 0.15
-      });
+      // Filter: falling / darker lowpass sweep
+      filter.frequency.setValueAtTime(500, now);
+      filter.frequency.exponentialRampToValueAtTime(180, now + duration);
+      
+      // Gain: fading / releasing
+      gain.gain.setValueAtTime(0.14, now);
+      gain.gain.linearRampToValueAtTime(0.0001, now + duration);
+      
+      // Pan: moves outward from center to right
+      if (panner) {
+        panner.pan.setValueAtTime(0.0, now);
+        panner.pan.linearRampToValueAtTime(0.75, now + duration);
+      }
     }
 
     function audioSoftChime(){
